@@ -41,7 +41,6 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/bun": "^1.1.2",
     "@types/node": "^24.3.0",
     "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
