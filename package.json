@@ -1,6 +1,6 @@
 {
   "name": "@vafast/cookie",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "Cookie parsing and signing middleware plugin for Vafast framework",
   "type": "module",
   "author": "",
