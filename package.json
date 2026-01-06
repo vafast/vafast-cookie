@@ -45,10 +45,10 @@
     "rimraf": "^6.0.1",
     "tsup": "^8.5.1",
     "typescript": "^5.4.5",
-    "vafast": ">=0.1.0",
+    "vafast": ">=0.3.11",
     "vitest": "^4.0.16"
   },
   "peerDependencies": {
-    "vafast": ">=0.1.0"
+    "vafast": ">=0.3.11"
   }
 }
