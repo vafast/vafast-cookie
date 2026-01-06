@@ -1,0 +1,55 @@
+{
+  "name": "@vafast/cookie",
+  "version": "0.0.1",
+  "description": "Cookie parsing and signing middleware plugin for Vafast framework",
+  "type": "module",
+  "author": "",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/vafast/vafast-cookie"
+  },
+  "main": "./dist/index.js",
+  "module": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "default": "./dist/index.js"
+    }
+  },
+  "bugs": "https://github.com/vafast/vafast-cookie/issues",
+  "homepage": "https://github.com/vafast/vafast-cookie",
+  "keywords": [
+    "vafast",
+    "typescript",
+    "middleware",
+    "cookie",
+    "signed-cookie",
+    "session"
+  ],
+  "scripts": {
+    "build": "tsup",
+    "dev": "npx tsx watch example/index.ts",
+    "test": "npx vitest run",
+    "release": "npm run build && npm run test && npx bumpp && npm publish --access=public"
+  },
+  "license": "MIT",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "devDependencies": {
+    "@types/bun": "^1.1.2",
+    "@types/node": "^24.3.0",
+    "rimraf": "^6.0.1",
+    "tsup": "^8.5.1",
+    "typescript": "^5.4.5",
+    "vafast": "^0.3.10",
+    "vitest": "^4.0.16"
+  },
+  "peerDependencies": {
+    "vafast": "^0.3.10"
+  }
+}
