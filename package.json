@@ -3,7 +3,10 @@
   "version": "0.0.2",
   "description": "Cookie parsing and signing middleware plugin for Vafast framework",
   "type": "module",
-  "author": "",
+  "author": {
+    "name": "vafast",
+    "url": "https://github.com/vafast"
+  },
   "repository": {
     "type": "git",
     "url": "https://github.com/vafast/vafast-cookie"
@@ -15,6 +18,7 @@
     ".": {
       "types": "./dist/index.d.ts",
       "import": "./dist/index.js",
+      "require": "./dist/index.js",
       "default": "./dist/index.js"
     }
   },
@@ -41,14 +45,13 @@
     "LICENSE"
   ],
   "devDependencies": {
-    "@types/node": "^24.3.0",
-    "rimraf": "^6.0.1",
+    "@types/node": "^22.0.0",
     "tsdown": "^0.19.0-beta.4",
     "typescript": "^5.4.5",
-    "vafast": ">=0.3.11",
+    "vafast": "^0.4.2",
     "vitest": "^4.0.16"
   },
   "peerDependencies": {
-    "vafast": ">=0.3.11"
+    "vafast": ">=0.4.0"
   }
 }
