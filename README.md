@@ -20,14 +20,18 @@ npm install @vafast/cookie
 ### 基础 Cookie 解析
 
 ```typescript
-import { serve, defineRoutes, route, createHandler } from 'vafast'
+import { Server, defineRoutes, createHandler } from 'vafast'
 import { cookies } from '@vafast/cookie'
 
 const routes = defineRoutes([
-  route('GET', '/profile', createHandler({}, async ({ req }) => {
-    const sessionId = req.cookies?.sessionId
-    return { sessionId }
-  }))
+  {
+    method: 'GET',
+    path: '/profile',
+    handler: createHandler({}, async ({ req }) => {
+      const sessionId = req.cookies?.sessionId
+      return { sessionId }
+    })
+  }
 ])
 
 const app = new Server(routes)
