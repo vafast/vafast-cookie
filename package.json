@@ -1,6 +1,6 @@
 {
   "name": "@vafast/cookie",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "Cookie parsing and signing middleware plugin for Vafast framework",
   "type": "module",
   "author": {
@@ -48,10 +48,10 @@
     "@types/node": "^22.0.0",
     "tsdown": "^0.19.0-beta.4",
     "typescript": "^5.4.5",
-    "vafast": "^0.4.2",
+    "vafast": "^0.5.1",
     "vitest": "^4.0.16"
   },
   "peerDependencies": {
-    "vafast": ">=0.4.0"
+    "vafast": "^0.5.1"
   }
 }

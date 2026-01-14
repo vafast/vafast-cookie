@@ -4,6 +4,7 @@
  */
 
 import { createHmac, timingSafeEqual } from 'node:crypto'
+import { defineMiddleware } from 'vafast'
 
 /** Cookie 选项 */
 export interface CookieOptions {
@@ -147,22 +148,24 @@ export function unsign(signedValue: string, secret: string, algorithm = 'sha256'
  * app.use(cookies())
  * 
  * // 在处理函数中使用
- * createHandler({}, async ({ req }) => {
- *   const sessionId = req.cookies?.sessionId
- *   return { sessionId }
+ * defineRoute({
+ *   method: 'GET',
+ *   path: '/',
+ *   handler: ({ req }) => {
+ *     const sessionId = req.cookies?.sessionId
+ *     return { sessionId }
+ *   }
  * })
  * ```
  */
 export function cookies() {
-  return async (
-    req: Request,
-    next: () => Promise<Response>
-  ): Promise<Response> => {
+  return defineMiddleware<{ cookies: Record<string, string> }>(async (req, next) => {
     const cookieHeader = req.headers.get('Cookie')
-    ;(req as Request & { cookies: Record<string, string> }).cookies = parseCookies(cookieHeader)
+    const parsedCookies = parseCookies(cookieHeader)
+    ;(req as Request & { cookies: Record<string, string> }).cookies = parsedCookies
     
-    return next()
-  }
+    return next({ cookies: parsedCookies })
+  })
 }
 
 /**
@@ -175,20 +178,21 @@ export function cookies() {
  * app.use(signedCookies({ secret: 'your-secret-key' }))
  * 
  * // 在处理函数中使用
- * createHandler({}, async ({ req }) => {
- *   // 已验证的签名 Cookie
- *   const userId = req.signedCookies?.userId
- *   return { userId }
+ * defineRoute({
+ *   method: 'GET',
+ *   path: '/',
+ *   handler: ({ signedCookies }) => {
+ *     // 已验证的签名 Cookie
+ *     const userId = signedCookies?.userId
+ *     return { userId }
+ *   }
  * })
  * ```
  */
 export function signedCookies(options: SignedCookiesOptions) {
   const { secret, algorithm = 'sha256' } = options
   
-  return async (
-    req: Request,
-    next: () => Promise<Response>
-  ): Promise<Response> => {
+  return defineMiddleware<{ cookies: Record<string, string>; signedCookies: Record<string, string> }>(async (req, next) => {
     const cookieHeader = req.headers.get('Cookie')
     const allCookies = parseCookies(cookieHeader)
     
@@ -208,8 +212,8 @@ export function signedCookies(options: SignedCookiesOptions) {
     ;(req as Request & { cookies: Record<string, string> }).cookies = plainCookies
     ;(req as Request & { signedCookies: Record<string, string> }).signedCookies = verified
     
-    return next()
-  }
+    return next({ cookies: plainCookies, signedCookies: verified })
+  })
 }
 
 /**
@@ -293,4 +297,3 @@ export default {
   createCookieJar,
   CookieJar,
 }
-
