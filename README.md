@@ -1,158 +1,97 @@
 # @vafast/cookie
 
-Vafast Cookie 解析、签名与验证中间件。
+Vafast Cookie **解析、HMAC 签名校验**与 **`Set-Cookie` 写入**工具包。
 
-## ✨ 特性
+| API | 作用 |
+|-----|------|
+| `cookies()` | 解析 → `next({ cookies })` / `req.cookies` |
+| `signedCookies({ secret })` | 校验签名 → `cookies`（未通过）+ `signedCookies`（已通过，值为原文） |
+| `createCookieJar(secret?)` | 组装 Cookie，`jar.apply(response)` 写回 |
+| `parseCookies` / `serializeCookie` | 头字符串 ↔ Cookie |
+| `sign` / `unsign` | HMAC 签名 / 验证（`timingSafeEqual`） |
 
-- 🍪 Cookie 解析中间件
-- 🔐 HMAC 签名与验证（防篡改）
-- 🛡️ 时间安全比较（防时序攻击）
-- 🧰 CookieJar 响应辅助类
+> 签名 ≠ 加密：值仍可读，只能防篡改。没有 `cookie()` / `setCookie()` 这类导出。
 
-## 📦 安装
+## 安装
 
 ```bash
 npm install @vafast/cookie
 ```
 
-## 🚀 使用
-
-### 基础 Cookie 解析
+## 快速开始
 
 ```typescript
-import { Server, defineRoutes, createHandler } from 'vafast'
-import { cookies } from '@vafast/cookie'
+import { Server, defineRoute, defineRoutes, err, json, serve } from 'vafast'
+import { cookies, signedCookies, createCookieJar } from '@vafast/cookie'
+
+const secret = process.env.COOKIE_SECRET!
 
 const routes = defineRoutes([
-  {
+  defineRoute({
+    method: 'POST',
+    path: '/login',
+    handler: () => {
+      const jar = createCookieJar(secret)
+      jar.setSigned('userId', 'u_1', {
+        httpOnly: true,
+        secure: true,
+        sameSite: 'Lax',
+        maxAge: 7 * 24 * 3600,
+      })
+      return jar.apply(json({ ok: true }))
+    },
+  }),
+  defineRoute({
     method: 'GET',
     path: '/profile',
-    handler: createHandler({}, async ({ req }) => {
-      const sessionId = req.cookies?.sessionId
-      return { sessionId }
-    })
-  }
+    middleware: [signedCookies({ secret })],
+    handler: ({ signedCookies: signed }) => {
+      if (!signed.userId) throw err.unauthorized('请先登录')
+      return json({ userId: signed.userId })
+    },
+  }),
+  defineRoute({
+    method: 'GET',
+    path: '/theme',
+    middleware: [cookies()],
+    handler: ({ cookies: jar }) => json({ theme: jar.theme }),
+  }),
 ])
 
-const app = new Server(routes)
-app.use(cookies())
+const server = new Server(routes)
+serve({ fetch: server.fetch, port: 3000 })
 ```
 
-### 签名 Cookie
+## 选项
 
-```typescript
-import { signedCookies, createCookieJar } from '@vafast/cookie'
+### `signedCookies` / `createCookieJar`
 
-const SECRET = process.env.COOKIE_SECRET!
+| 选项 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `secret` | `string` | — | HMAC 密钥；`signedCookies` 必填，`setSigned` 时 jar 也必填 |
+| `algorithm` | `string` | `'sha256'` | 传给 `crypto.createHmac` |
 
-// 中间件会自动验证签名
-app.use(signedCookies({ secret: SECRET }))
+### `CookieOptions`（`set` / `setSigned` / `serializeCookie`）
 
-// 在处理函数中
-createHandler({}, async ({ req }) => {
-  // req.signedCookies 包含已验证的签名 Cookie
-  const userId = req.signedCookies?.userId
-  
-  // req.cookies 包含普通 Cookie（或签名无效的 Cookie）
-  const theme = req.cookies?.theme
-  
-  // 设置签名 Cookie
-  const jar = createCookieJar(SECRET)
-  jar.setSigned('userId', 'user123', {
-    httpOnly: true,
-    secure: true,
-    maxAge: 60 * 60 * 24 * 7, // 7 天
-    sameSite: 'Strict'
-  })
-  
-  const response = new Response(JSON.stringify({ ok: true }))
-  return jar.apply(response)
-})
-```
+| 选项 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `expires` | `Date \| number` | — | 绝对过期时刻（`Expires=`） |
+| `maxAge` | `number` | — | 相对存活**秒**数（`Max-Age=`）；与 `expires` 可同时写 |
+| `domain` | `string` | — | `Domain`；**删除时必须与写入一致** |
+| `path` | `string` | `'/'` | `Path`；**删除时必须与写入一致** |
+| `secure` | `boolean` | `false`（不写 Secure） | 仅 HTTPS；`SameSite=None` 时浏览器通常要求开启 |
+| `httpOnly` | `boolean` | `true` | 默认禁止 JS 读；显式 `false` 才关闭 |
+| `sameSite` | `'Strict' \| 'Lax' \| 'None'` | — | 不传则不写该属性。`Strict` 最严；`Lax` 适合多数会话；`None` 需配 `secure: true` |
 
-### 删除 Cookie
+### `CookieJar` 方法
 
-```typescript
-const jar = createCookieJar()
-jar.delete('session')
+| 方法 | 说明 |
+|------|------|
+| `set(name, value, options?)` | 普通 Cookie |
+| `setSigned(name, value, options?)` | 签名 Cookie（需 secret） |
+| `delete(name, { domain?, path? }?)` | 写 `Max-Age=0` + 过去 `Expires`；path/domain 须匹配 |
+| `apply(response)` | append 所有 `Set-Cookie` 到新 `Response` |
 
-const response = jar.apply(new Response('Logged out'))
-```
+## 文档
 
-## 📚 API
-
-### 中间件
-
-#### `cookies()`
-
-解析请求中的所有 Cookie 到 `req.cookies`。
-
-#### `signedCookies(options)`
-
-解析并验证签名 Cookie。
-
-- 有效签名 → `req.signedCookies`
-- 无效签名 / 普通 Cookie → `req.cookies`
-
-| 选项 | 类型 | 默认值 | 说明 |
-|------|------|--------|------|
-| `secret` | `string` | - | 签名密钥（必填） |
-| `algorithm` | `string` | `'sha256'` | HMAC 算法 |
-
-### 工具函数
-
-#### `sign(value, secret, algorithm?)`
-
-对值进行 HMAC 签名，返回 `value.signature` 格式。
-
-#### `unsign(signedValue, secret, algorithm?)`
-
-验证签名并返回原始值，失败返回 `null`。
-
-#### `parseCookies(cookieHeader)`
-
-解析 Cookie 字符串为对象。
-
-#### `serializeCookie(name, value, options?)`
-
-序列化为 `Set-Cookie` 头值。
-
-### CookieJar
-
-链式 API 设置响应 Cookie。
-
-```typescript
-const jar = createCookieJar(secret?)
-
-jar
-  .set('plain', 'value', options?)       // 普通 Cookie
-  .setSigned('signed', 'value', options?) // 签名 Cookie（需要 secret）
-  .delete('old', options?)                // 删除 Cookie
-  .apply(response)                        // 应用到响应
-```
-
-### CookieOptions
-
-```typescript
-interface CookieOptions {
-  expires?: Date | number  // 过期时间
-  maxAge?: number          // 秒
-  domain?: string
-  path?: string            // 默认 '/'
-  secure?: boolean         // 仅 HTTPS
-  httpOnly?: boolean       // 默认 true
-  sameSite?: 'Strict' | 'Lax' | 'None'
-}
-```
-
-## 🔒 安全说明
-
-1. **使用强密钥**: `secret` 应该是随机生成的长字符串
-2. **环境变量存储**: 不要硬编码密钥
-3. **HTTPS**: 生产环境建议开启 `secure: true`
-4. **HttpOnly**: 默认开启，防止 XSS 窃取
-
-## 📄 许可证
-
-MIT
-
+完整白话说明（`expires` vs `maxAge`、SameSite、签名 vs 加密、删除匹配）见站点文档：[Cookie 中间件](https://vafast.huyooo.com/middleware/cookie.html)（仓库内 `vafast-doc/docs/middleware/cookie.md`）。
